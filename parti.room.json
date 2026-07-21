@@ -1,0 +1,28 @@
+{
+  "partiVersion": "0.1.0",
+  "protocolVersion": 1,
+  "id": "texas-holdem",
+  "name": "德州扑克",
+  "version": "0.1.0",
+  "packageMode": "blob",
+  "description": "全下、诈唬、看牌——你以为对面在偷鸡，其实他只是手滑点错了。支持2-6人，筹码不真实，心跳是真的。",
+  "cover": "cover.svg",
+  "author": {
+    "name": "Parti Arcades"
+  },
+  "entry": {
+    "ui": "index.html",
+    "worker": "room.worker.js"
+  },
+  "room": {
+    "minPlayers": 2,
+    "maxPlayers": 6
+  },
+  "sync": {
+    "mode": "snapshot"
+  },
+  "permissions": {
+    "network": false,
+    "storage": "session"
+  }
+}

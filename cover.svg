@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%">
+      <stop offset="0%" stop-color="#14532d"/>
+      <stop offset="100%" stop-color="#052016"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="240" rx="16" fill="url(#bg)"/>
+  <circle cx="200" cy="100" r="70" fill="none" stroke="#22c55e" stroke-width="1" opacity="0.15"/>
+  <circle cx="200" cy="100" r="100" fill="none" stroke="#22c55e" stroke-width="0.5" opacity="0.08"/>
+
+  <ellipse cx="200" cy="106" rx="120" ry="60" fill="rgba(34,197,94,0.06)"/>
+
+  <!-- Cards -->
+  <g transform="translate(120, 55) rotate(-8)">
+    <rect x="0" y="0" width="42" height="60" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+    <text x="6" y="16" font-size="13" font-weight="bold" fill="#dc2626">A</text>
+    <text x="6" y="28" font-size="14" fill="#dc2626">♥</text>
+  </g>
+  <g transform="translate(238, 55) rotate(8)">
+    <rect x="0" y="0" width="42" height="60" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+    <text x="6" y="16" font-size="13" font-weight="bold" fill="#1e293b">K</text>
+    <text x="6" y="28" font-size="14" fill="#1e293b">♠</text>
+  </g>
+
+  <!-- Chips -->
+  <circle cx="175" cy="125" r="8" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/>
+  <circle cx="175" cy="125" r="3" fill="none" stroke="#b91c1c" stroke-width="1" stroke-dasharray="2 1"/>
+  <circle cx="225" cy="120" r="10" fill="#3b82f6" stroke="#1d4ed8" stroke-width="1.5"/>
+  <circle cx="225" cy="120" r="4" fill="none" stroke="#1d4ed8" stroke-width="1" stroke-dasharray="2 1"/>
+  <circle cx="200" cy="142" r="6" fill="#10b981" stroke="#047857" stroke-width="1.5"/>
+  <circle cx="200" cy="142" r="2" fill="none" stroke="#047857" stroke-width="1" stroke-dasharray="2 1"/>
+
+  <!-- Text -->
+  <text x="200" y="188" text-anchor="middle" font-size="20" font-weight="bold" fill="#fbbf24" font-family="sans-serif">德州扑克</text>
+  <text x="200" y="208" text-anchor="middle" font-size="12" fill="#6b7280" font-family="sans-serif">全下还是弃牌，这是个问题</text>
+</svg>
