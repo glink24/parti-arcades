@@ -18,9 +18,9 @@ jobs:
         id: changes
         run: |
           if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            CHANGED=$(git diff --name-only HEAD~1 HEAD -- games/ | cut -d/ -f2 | sort -u)
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- games/ | cut -d/ -f2 | sort -u | tr '\n' ' ')
           else
-            CHANGED=$(ls games/)
+            CHANGED=$(ls games/ | tr '\n' ' ')
           fi
           echo "Changed games: ${CHANGED}"
           echo "games=${CHANGED}" >> "$GITHUB_OUTPUT"
