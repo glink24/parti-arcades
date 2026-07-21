@@ -5,7 +5,8 @@
   "name": "井字棋",
   "version": "0.1.0",
   "packageMode": "blob",
-  "description": "经典双人井字棋：前两位玩家执 X / O，轮流落子，连成一线获胜。",
+  "description": "三连即赢，但友谊可能就此终结。先手占中，后手堵角，剩下全是心理博弈。",
+  "cover": "cover.svg",
   "author": {
     "name": "Parti Arcades"
   },
