@@ -83,9 +83,10 @@ export default defineRoom({
   },
 
   actions: {
-    mark: function (ctx, payload) {
+    mark: function (ctx, _ref) {
       var state = ctx.state;
-      var player = ctx.player;
+      var player = _ref && _ref.player;
+      var payload = _ref && _ref.payload;
 
       if (state.phase !== 'playing') return;
 

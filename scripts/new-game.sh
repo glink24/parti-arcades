@@ -124,6 +124,8 @@ export default defineRoom({
     ctx.state.phase = 'waiting';
   },
 
+  // Action handler 签名：(ctx, { player, payload })
+  // 参考 https://github.com/glink25/Parti/blob/main/docs/worker-api.md
   actions: {},
 });
 WORKER

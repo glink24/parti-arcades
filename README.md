@@ -48,3 +48,7 @@ sh scripts/new-game.sh my-game-name
 ```
 
 编辑生成的三件套后推送即可。
+
+## 开发注意事项
+
+> **务必参考 [Parti Worker API 文档](https://github.com/glink25/Parti/blob/main/docs/worker-api.md)** 确认 SDK 接口约定，避免因 API 变更导致运行时错误，必要时需要读取Parti的其他官方文档。

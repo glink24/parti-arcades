@@ -539,9 +539,9 @@ function endHand(ctx) {
 }
 
 var originalActions = {
-  fold: function (ctx) {
+  fold: function (ctx, _ref) {
     var state = ctx.state;
-    var player = ctx.player;
+    var player = _ref && _ref.player;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -553,9 +553,9 @@ var originalActions = {
     advanceGame(ctx);
   },
 
-  check: function (ctx) {
+  check: function (ctx, _ref) {
     var state = ctx.state;
-    var player = ctx.player;
+    var player = _ref && _ref.player;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -567,9 +567,9 @@ var originalActions = {
     advanceGame(ctx);
   },
 
-  call: function (ctx) {
+  call: function (ctx, _ref) {
     var state = ctx.state;
-    var player = ctx.player;
+    var player = _ref && _ref.player;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -586,10 +586,10 @@ var originalActions = {
     advanceGame(ctx);
   },
 
-  raise: function (ctx) {
+  raise: function (ctx, _ref) {
     var state = ctx.state;
-    var player = ctx.player;
-    var payload = ctx.payload;
+    var player = _ref && _ref.player;
+    var payload = _ref && _ref.payload;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -620,9 +620,9 @@ var originalActions = {
     advanceGame(ctx);
   },
 
-  allin: function (ctx) {
+  allin: function (ctx, _ref) {
     var state = ctx.state;
-    var player = ctx.player;
+    var player = _ref && _ref.player;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
