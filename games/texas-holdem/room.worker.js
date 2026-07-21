@@ -227,6 +227,7 @@ function checkRestart(ctx) {
 }
 
 function validateAction(ctx, player) {
+  if (!player) return false;
   var state = ctx.state;
   if (state.phase === 'waiting' || state.phase === 'finished') return false;
   if (state.currentPlayerId !== player.id) return false;
@@ -542,6 +543,7 @@ var originalActions = {
   fold: function (ctx, _ref) {
     var state = ctx.state;
     var player = _ref && _ref.player;
+    if (!player) return;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -556,6 +558,7 @@ var originalActions = {
   check: function (ctx, _ref) {
     var state = ctx.state;
     var player = _ref && _ref.player;
+    if (!player) return;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -570,6 +573,7 @@ var originalActions = {
   call: function (ctx, _ref) {
     var state = ctx.state;
     var player = _ref && _ref.player;
+    if (!player) return;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -590,6 +594,7 @@ var originalActions = {
     var state = ctx.state;
     var player = _ref && _ref.player;
     var payload = _ref && _ref.payload;
+    if (!player) return;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -623,6 +628,7 @@ var originalActions = {
   allin: function (ctx, _ref) {
     var state = ctx.state;
     var player = _ref && _ref.player;
+    if (!player) return;
     checkRestart(ctx);
     if (!validateAction(ctx, player)) return;
     var p = null;
@@ -675,6 +681,7 @@ export default defineRoom({
   },
 
   onJoin: function (ctx, player) {
+    if (!player) return;
     var state = ctx.state;
     if (state._pendingRestart && state.phase === 'finished') {
       checkRestart(ctx);
@@ -700,6 +707,7 @@ export default defineRoom({
   },
 
   onLeave: function (ctx, player) {
+    if (!player) return;
     var state = ctx.state;
     var newPlayers = [];
     for (var i = 0; i < state.players.length; i++) {
@@ -728,6 +736,7 @@ export default defineRoom({
   },
 
   onReady: function (ctx, player) {
+    if (!player) return;
     var state = ctx.state;
     for (var i = 0; i < state.players.length; i++) {
       if (state.players[i].id === player.id) {

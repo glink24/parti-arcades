@@ -1,0 +1,28 @@
+{
+  "partiVersion": "0.1.0",
+  "protocolVersion": 1,
+  "id": "flappy-bird",
+  "name": "Flappy Bird 联机版",
+  "version": "0.1.0",
+  "packageMode": "blob",
+  "description": "多人联机版 Flappy Bird，和朋友们一起飞跃管道。死后自动进入观战模式，可以看到其他玩家的小鸟继续飞行。",
+  "cover": "cover.svg",
+  "author": {
+    "name": "Parti Arcades"
+  },
+  "entry": {
+    "ui": "index.html",
+    "worker": "room.worker.js"
+  },
+  "room": {
+    "minPlayers": 1,
+    "maxPlayers": 8
+  },
+  "sync": {
+    "mode": "snapshot"
+  },
+  "permissions": {
+    "network": false,
+    "storage": "session"
+  }
+}

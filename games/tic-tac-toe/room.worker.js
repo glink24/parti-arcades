@@ -43,6 +43,7 @@ export default defineRoom({
   },
 
   onJoin: function (ctx, player) {
+    if (!player) return;
     var mark = null;
     if (!ctx.state.seats.X) {
       ctx.state.seats.X = player.id;
@@ -71,6 +72,7 @@ export default defineRoom({
   },
 
   onLeave: function (ctx, player) {
+    if (!player) return;
     var p = ctx.state.players[player.id];
     if (p && p.mark && ctx.state.seats[p.mark] === player.id) {
       ctx.state.seats[p.mark] = null;
@@ -88,6 +90,7 @@ export default defineRoom({
       var player = _ref && _ref.player;
       var payload = _ref && _ref.payload;
 
+      if (!player) return;
       if (state.phase !== 'playing') return;
 
       var me = state.players[player.id];
