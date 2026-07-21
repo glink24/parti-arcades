@@ -1,0 +1,28 @@
+{
+  "partiVersion": "0.1.0",
+  "protocolVersion": 1,
+  "id": "tic-tac-toe",
+  "name": "井字棋",
+  "version": "0.1.0",
+  "packageMode": "blob",
+  "description": "三连即赢，但友谊可能就此终结。先手占中，后手堵角，剩下全是心理博弈。",
+  "cover": "cover.svg",
+  "author": {
+    "name": "Parti Arcades"
+  },
+  "entry": {
+    "ui": "index.html",
+    "worker": "room.worker.js"
+  },
+  "room": {
+    "minPlayers": 2,
+    "maxPlayers": 2
+  },
+  "sync": {
+    "mode": "snapshot"
+  },
+  "permissions": {
+    "network": false,
+    "storage": "session"
+  }
+}
