@@ -1,0 +1,27 @@
+{
+  "partiVersion": "0.1.0",
+  "protocolVersion": 1,
+  "id": "texas-holdem",
+  "name": "德州扑克",
+  "version": "0.1.0",
+  "packageMode": "blob",
+  "description": "多人无限注德州扑克，支持2-6人对战",
+  "author": {
+    "name": "Parti Arcades"
+  },
+  "entry": {
+    "ui": "index.html",
+    "worker": "room.worker.js"
+  },
+  "room": {
+    "minPlayers": 2,
+    "maxPlayers": 6
+  },
+  "sync": {
+    "mode": "snapshot"
+  },
+  "permissions": {
+    "network": false,
+    "storage": "session"
+  }
+}

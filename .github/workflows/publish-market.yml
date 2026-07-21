@@ -1,0 +1,55 @@
+name: Sync games to market branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'games/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed game directories
+        id: changes
+        run: |
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD -- games/ | cut -d/ -f2 | sort -u)
+          else
+            CHANGED=$(ls games/)
+          fi
+          echo "Changed games: ${CHANGED}"
+          echo "games=${CHANGED}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync each game to its market branch
+        run: |
+          for game in ${{ steps.changes.outputs.games }}; do
+            if [ ! -d "games/${game}" ]; then
+              echo "Skipping ${game}: directory not found"
+              continue
+            fi
+            BRANCH="market-${game}"
+            echo "Publishing ${game} to branch ${BRANCH}..."
+
+            TMPDIR=$(mktemp -d)
+            cp -R "games/${game}/." "$TMPDIR/"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            git checkout --orphan "${BRANCH}-tmp" 2>/dev/null || true
+            git rm -rf --ignore-unmatch . 2>/dev/null || true
+
+            cp -R "$TMPDIR/." .
+
+            git add -A
+            git commit -m "publish ${game} @ $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes for ${game}"
+            git push -f origin "HEAD:${BRANCH}" || echo "Push failed for ${BRANCH}"
+
+            git checkout main
+            rm -rf "$TMPDIR"
+          done

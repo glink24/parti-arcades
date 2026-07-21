@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>井字棋</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f13;
+      color: #e8e8ed;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 6px 0;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #f0c27f, #fc5c7d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #8888a0;
+      margin-bottom: 18px;
+    }
+
+    .status-bar {
+      width: 100%;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 500;
+      padding: 10px 0 14px 0;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-bar .mark-badge {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 18px;
+      border-radius: 6px;
+      background: #2a2a35;
+    }
+
+    .status-bar .mark-badge.x {
+      color: #5b9aff;
+    }
+    .status-bar .mark-badge.o {
+      color: #ff7b9c;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 400px;
+      margin: 0 auto 18px auto;
+    }
+
+    .cell {
+      background: #1c1c24;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      aspect-ratio: 1 / 1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 2px solid transparent;
+    }
+
+    .cell:active {
+      transform: scale(0.94);
+    }
+
+    .cell.x {
+      color: #5b9aff;
+    }
+    .cell.o {
+      color: #ff7b9c;
+    }
+
+    .cell.win-highlight {
+      border-color: #f7d44a;
+      box-shadow: 0 0 20px rgba(247, 212, 74, 0.25);
+      background: #2a281a;
+    }
+
+    .cell.disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .cell:not(.disabled):hover {
+      background: #262630;
+    }
+
+    .btn-restart {
+      background: #2a2a38;
+      border: none;
+      color: #e8e8ed;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 32px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      min-width: 140px;
+      margin-top: 4px;
+    }
+
+    .btn-restart:active {
+      transform: scale(0.96);
+    }
+    .btn-restart:hover {
+      background: #353545;
+    }
+    .btn-restart:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: #555568;
+      margin-top: 16px;
+      letter-spacing: 0.3px;
+    }
+
+    @media (max-width: 480px) {
+      .cell {
+        font-size: 40px;
+        border-radius: 10px;
+      }
+      .container {
+        padding: 12px 12px 24px;
+      }
+      .status-bar {
+        font-size: 16px;
+        min-height: 44px;
+        padding: 6px 0 10px 0;
+      }
+      .btn-restart {
+        padding: 10px 24px;
+        font-size: 15px;
+        min-width: 120px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .cell {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✖ 井字棋 ○</h1>
+    <div class="subtitle">双人 · 轮流落子</div>
+
+    <div class="status-bar" id="statusBar">
+      <span id="statusText">等待玩家加入...</span>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <button class="btn-restart" id="restartBtn">🔄 再来一局</button>
+    <div class="footer-note">Parti 多人联机</div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var boardEl = document.getElementById('board');
+      var statusText = document.getElementById('statusText');
+      var restartBtn = document.getElementById('restartBtn');
+
+      var myMark = null;
+      var currentState = null;
+
+      function render(state) {
+        if (!state) return;
+        currentState = state;
+
+        var board = state.board || [];
+        for (var i = 0; i < 9; i++) {
+          if (!board[i]) board[i] = null;
+        }
+
+        var phase = state.phase || 'waiting';
+        var turn = state.turn || 'X';
+        var winner = state.winner || null;
+        var winLine = state.winLine || null;
+        var players = state.players || {};
+
+        var html = '';
+        for (var i = 0; i < 9; i++) {
+          var mark = board[i];
+          var isWin = winLine && Array.isArray(winLine) && winLine.indexOf(i) !== -1;
+          var cellClass = 'cell';
+          if (mark === 'X') cellClass += ' x';
+          else if (mark === 'O') cellClass += ' o';
+          if (isWin) cellClass += ' win-highlight';
+
+          var isMyTurn = phase === 'playing' && turn === myMark && myMark !== null;
+          var isOccupied = board[i] !== null;
+          var isFinished = phase === 'finished';
+          var canClick = isMyTurn && !isOccupied && !isFinished;
+
+          if (!canClick) cellClass += ' disabled';
+
+          html += '<div class="' + cellClass + '" data-index="' + i + '" role="gridcell">' + (mark || '') + '</div>';
+        }
+        boardEl.innerHTML = html;
+
+        var statusMsg = '';
+        var badge = '';
+
+        var myId = parti.playerId;
+        if (myId && players[myId] && players[myId].mark) {
+          myMark = players[myId].mark;
+        }
+
+        if (phase === 'waiting') {
+          var seatedCount = 0;
+          var keys = Object.keys(players);
+          for (var k = 0; k < keys.length; k++) {
+            if (players[keys[k]] && players[keys[k]].mark) seatedCount++;
+          }
+          if (seatedCount < 2) {
+            statusMsg = '等待对手加入...';
+          } else {
+            statusMsg = '等待开始...';
+          }
+        } else if (phase === 'playing') {
+          var myMarkNow = (myId && players[myId] && players[myId].mark) || myMark;
+          if (myMarkNow) {
+            var isMyTurnNow = turn === myMarkNow;
+            var markLabel = myMarkNow === 'X' ? '✖' : '○';
+            var markClass = myMarkNow === 'X' ? 'x' : 'o';
+            badge = '<span class="mark-badge ' + markClass + '">' + markLabel + '</span>';
+            statusMsg = isMyTurnNow ? ' 轮到你了！' : ' 等待对手落子...';
+          } else {
+            statusMsg = '观战中...';
+          }
+        } else if (phase === 'finished') {
+          if (winner === 'draw') {
+            statusMsg = '平局！';
+          } else if (winner === myMark) {
+            statusMsg = '你赢了！';
+          } else if (winner) {
+            statusMsg = '你输了...';
+          } else {
+            statusMsg = '游戏结束';
+          }
+        }
+
+        statusText.innerHTML = badge + ' ' + statusMsg;
+
+        var isPlayer = myId && players[myId] && players[myId].mark !== null;
+        restartBtn.disabled = !isPlayer && phase !== 'finished';
+      }
+
+      boardEl.addEventListener('click', function (e) {
+        var cell = e.target.closest('.cell');
+        if (!cell) return;
+        if (cell.classList.contains('disabled')) return;
+
+        var index = parseInt(cell.dataset.index, 10);
+        if (isNaN(index) || index < 0 || index > 8) return;
+
+        parti.action('mark', { cell: index });
+      });
+
+      restartBtn.addEventListener('click', function () {
+        parti.action('restart', {});
+      });
+
+      parti.onState(function (state) {
+        render(state);
+      });
+
+      parti.onEvent('seat:assigned', function (payload) {
+        if (payload && typeof payload.mark === 'string') {
+          myMark = payload.mark;
+          if (currentState) render(currentState);
+        }
+      });
+
+      parti.ready();
+
+      var initial = parti.getState();
+      if (initial) {
+        render(initial);
+      }
+
+      setTimeout(function () {
+        var state = parti.getState();
+        if (state && state.players) {
+          var id = parti.playerId;
+          if (id && state.players[id] && state.players[id].mark) {
+            myMark = state.players[id].mark;
+            if (currentState) render(currentState);
+          }
+        }
+      }, 100);
+    })();
+  </script>
+</body>
+</html>
