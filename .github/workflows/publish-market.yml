@@ -60,3 +60,38 @@ jobs:
             git checkout main
             rm -rf "$TMPDIR"
           done
+
+      - name: Refresh market issues on glink25/Parti
+        if: env.MARKET_REGISTRY_TOKEN
+        env:
+          GH_TOKEN: ${{ secrets.MARKET_REGISTRY_TOKEN }}
+        run: |
+          REGISTRY="glink25/Parti"
+          for game in ${{ steps.changes.outputs.games }}; do
+            if [ ! -d "games/${game}" ]; then
+              continue
+            fi
+            TITLE="[parti-room] glink24/parti-arcades@market-${game}"
+            echo "Looking for issue: ${TITLE}"
+
+            ISSUE_NUM=$(gh issue list \
+              --repo "$REGISTRY" \
+              --search "\"${TITLE}\" in:title" \
+              --state open \
+              --json number \
+              --jq '.[0].number' 2>/dev/null || true)
+
+            if [ -z "$ISSUE_NUM" ] || [ "$ISSUE_NUM" = "null" ]; then
+              echo "  No open issue found for ${game}, skipping"
+              continue
+            fi
+
+            echo "  Found issue #${ISSUE_NUM}, refreshing..."
+
+            BODY=$(gh issue view "$ISSUE_NUM" --repo "$REGISTRY" --json body --jq '.body')
+            TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            UPDATED_BODY=$(printf '%s\n\n<!-- parti-auto-refresh: %s -->' "$BODY" "$TIMESTAMP")
+
+            echo "$UPDATED_BODY" | gh issue edit "$ISSUE_NUM" --repo "$REGISTRY" --body-file -
+            echo "  Issue #${ISSUE_NUM} refreshed, triage will re-check"
+          done

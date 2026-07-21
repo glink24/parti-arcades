@@ -29,8 +29,17 @@ parti-arcades/
 
 ## 发布流程
 
-推送到 `main` 分支后，GitHub Actions 自动将每个游戏同步到对应的 `market-*` 分支。
-通过 [Parti 房间市场](https://github.com/glink25/Parti/issues) 注册上架。
+推送到 `main` 分支后，GitHub Actions 自动将每个游戏同步到对应的 `market-*` 分支，并自动刷新 [Parti 房间市场](https://github.com/glink25/Parti/issues) 中对应 Issue 的 triage 检查。
+
+### 启用自动刷市场 Issue（可选）
+
+1. 在 `glink24` 账号的 [Personal Access Tokens](https://github.com/settings/tokens) 创建一个 **Classic Token**，勾选 `public_repo` 权限
+2. 在 `glink24/parti-arcades` → Settings → Secrets and variables → Actions，添加 Secret：
+   - Name: `MARKET_REGISTRY_TOKEN`
+   - Value: 上一步生成的 Token
+3. 之后每次推送到 `main`，游戏同步完成后会自动编辑对应 Issue 触发 triage 刷新
+
+> 不配置 Token 时，CI 仍然会同步 `market-*` 分支，但需要手动编辑 Issue 触发 re-triage。
 
 ## 新增游戏
 
