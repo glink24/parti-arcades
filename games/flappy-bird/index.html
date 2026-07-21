@@ -2,167 +2,65 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Flappy Bird 联机版</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-    body {
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: #0f0f13;
-      color: #e8e8ed;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100dvh; width: 100%; overflow: hidden;
+      user-select: none; -webkit-user-select: none;
       touch-action: manipulation;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f13; color: #e8e8ed;
     }
-    .wrapper {
-      width: 100%;
-      max-width: 440px;
-      padding: 8px 8px 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .game-root {
+      position: relative; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; background: #0f0f13;
     }
-    .header {
-      text-align: center;
-      margin-bottom: 6px;
+    .game-root canvas {
+      display: block; flex-shrink: 0;
     }
-    .header h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      background: linear-gradient(135deg, #4ECDC4, #45B7D1);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .ui-layer {
+      position: absolute; inset: 0; pointer-events: none;
     }
-    .header .sub {
-      font-size: 11px;
-      color: #666;
-      margin-top: 1px;
-    }
-    .canvas-wrap {
-      position: relative;
-      width: 100%;
-      max-width: 400px;
-      aspect-ratio: 2 / 3;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-      background: #1a1e2c;
-    }
-    .canvas-wrap canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    .overlay {
+    .btn-area {
       position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .overlay.active { pointer-events: auto; }
-    .overlay-text {
-      font-size: 20px;
-      font-weight: 600;
-      color: #fff;
-      text-align: center;
-      line-height: 1.4;
-      padding: 0 20px;
-    }
-    .overlay-sub {
-      font-size: 13px;
-      color: #888;
-      margin-top: 6px;
-      text-align: center;
-      padding: 0 20px;
+      bottom: clamp(55px, 12%, 100px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px;
+      pointer-events: auto;
     }
     .btn {
-      border: none;
-      color: #e8e8ed;
-      font-size: 15px;
-      font-weight: 500;
-      padding: 10px 28px;
-      border-radius: 30px;
+      border: none; outline: none;
+      font-size: clamp(13px, 4vw, 16px); font-weight: 600;
+      padding: 10px 28px; border-radius: 28px;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      background: #2a2a38;
-      margin-top: 12px;
+      transition: background 0.15s, transform 0.1s, opacity 0.2s;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+      background: #4ECDC4; color: #0f0f13;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
     }
-    .btn:active { transform: scale(0.96); }
-    .btn:hover { background: #353545; }
-    .btn.accent { background: #4ECDC4; color: #0f0f13; font-weight: 600; }
-    .btn.accent:hover { background: #5eddd5; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .scoreboard {
-      width: 100%;
-      max-width: 400px;
-      margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      justify-content: center;
+    .btn:active { transform: scale(0.95); }
+    .btn.dim {
+      background: #2a2a38; color: #777;
     }
-    .score-card {
-      background: #1c1c24;
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      min-width: 70px;
-    }
-    .score-card.dead { opacity: 0.4; }
-    .score-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .score-card .name { color: #ccc; max-width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .score-card .pts { color: #ffd700; font-weight: 600; margin-left: auto; }
-    .btn-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-    }
-    .btn-row .btn { margin-top: 0; }
-    @media (max-width: 420px) {
-      .wrapper { padding: 4px 4px 12px; }
-      .header h1 { font-size: 19px; }
-      .canvas-wrap { border-radius: 10px; }
-      .overlay-text { font-size: 17px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; background: #2a2a38; color: #777; }
+    .btn.hidden { display: none !important; }
+    @media (hover: hover) {
+      .btn:hover:not(:disabled) { filter: brightness(1.1); }
     }
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="header">
-      <h1>Flappy Bird 联机版</h1>
-      <div class="sub" id="subtitle">多人 · 1-8人</div>
-    </div>
-
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="game" width="400" height="600"></canvas>
-      <div class="overlay" id="overlay">
-        <div class="overlay-text" id="overlayText"></div>
-        <div class="overlay-sub" id="overlaySub"></div>
+  <div class="game-root" id="gameRoot">
+    <canvas id="game" width="400" height="600"></canvas>
+    <div class="ui-layer">
+      <div class="btn-area" id="btnArea">
+        <button class="btn" id="readyBtn">准备</button>
+        <button class="btn" id="restartBtn">再来一局</button>
       </div>
-    </div>
-
-    <div class="scoreboard" id="scoreboard"></div>
-
-    <div class="btn-row" id="btnRow">
-      <button class="btn accent" id="readyBtn" style="display:none">准备</button>
-      <button class="btn" id="restartBtn" style="display:none">再来一局</button>
     </div>
   </div>
 
@@ -170,506 +68,406 @@
     (function () {
       'use strict';
 
+      var gameRoot = document.getElementById('gameRoot');
       var canvas = document.getElementById('game');
       var ctx = canvas.getContext('2d');
-      var overlay = document.getElementById('overlay');
-      var overlayText = document.getElementById('overlayText');
-      var overlaySub = document.getElementById('overlaySub');
-      var scoreboard = document.getElementById('scoreboard');
       var readyBtn = document.getElementById('readyBtn');
       var restartBtn = document.getElementById('restartBtn');
-      var subtitle = document.getElementById('subtitle');
-      var canvasWrap = document.getElementById('canvasWrap');
 
-      var CANVAS_W = 400;
-      var CANVAS_H = 600;
-      var GROUND_H = 80;
-      var BIRD_X = 80;
-      var BIRD_R = 14;
-      var GRAVITY = 0.40;
-      var FLAP_VEL = -7.2;
-      var MAX_FALL = 8;
-      var PIPE_W = 52;
-      var PIPE_GAP = 150;
-      var PIPE_SPEED = 2.2;
-      var PIPE_SPACING = 180;
-      var COLLISION_PADDING = 2;
+      var CANVAS_W = 400, CANVAS_H = 600;
+      var GROUND_H = 80, BIRD_X = 80, BIRD_R = 14;
+      var GRAVITY = 0.40, FLAP_VEL = -7.2, MAX_FALL = 8;
+      var PIPE_W = 52, PIPE_GAP = 150, PIPE_SPEED = 2.2, PIPE_SPACING = 180;
 
-      var phase = 'waiting';
-      var seed = 0;
-      var startTime = 0;
-      var myId = '';
-      var myReady = false;
-
-      var myBird = { y: 300, vy: 0, alive: true, score: 0 };
+      var phase = 'waiting', seed = 0, gameStartTime = 0, countdown = 0;
+      var myId = '', myReady = false;
+      var myBird = { y: 280, vy: 0, alive: true, score: 0 };
       var remoteBirds = {};
-      var hasDied = false;
-      var flapPressed = false;
+      var hasDied = false, flapPending = false;
+      var animFrameId = null, lastFrameTime = 0;
+      var pipeGapsCache = null;
 
-      var animFrameId = null;
-      var lastFrameTime = 0;
+      // ── Canvas sizing ────────────────────────────────
 
-      function createRemoteBird() {
-        return { y: 280, vy: 0, alive: true, score: 0 };
+      function resizeCanvas() {
+        var w = gameRoot.clientWidth;
+        var h = gameRoot.clientHeight;
+        if (w <= 0 || h <= 0) return;
+        var ratio = CANVAS_W / CANVAS_H;
+        var cw, ch;
+        if (w / h > ratio) { ch = h; cw = ch * ratio; }
+        else { cw = w; ch = cw / ratio; }
+        canvas.style.width = Math.floor(cw) + 'px';
+        canvas.style.height = Math.floor(ch) + 'px';
       }
 
-      function showOverlay(title, sub, clickable) {
-        overlayText.textContent = title || '';
-        overlaySub.textContent = sub || '';
-        if (clickable) {
-          overlay.classList.add('active');
-        } else {
-          overlay.classList.remove('active');
-        }
-      }
-
-      function hideOverlay() {
-        overlayText.textContent = '';
-        overlaySub.textContent = '';
-        overlay.classList.remove('active');
-      }
-
-      function renderScoreboard(state) {
-        var players = state.players || {};
-        var order = state.playerOrder || [];
-        var colors = state.playerColors || {};
-        var html = '';
-        for (var i = 0; i < order.length; i++) {
-          var pid = order[i];
-          var p = players[pid];
-          if (!p) continue;
-          var c = colors[pid] || {};
-          var isDead = !p.alive;
-          html += '<div class="score-card' + (isDead ? ' dead' : '') + '">';
-          html += '<span class="score-dot" style="background:' + (c.color || '#888') + '"></span>';
-          html += '<span class="name">' + (p.name || '玩家') + '</span>';
-          html += '<span class="pts">' + (p.score || 0) + '</span>';
-          html += '</div>';
-        }
-        scoreboard.innerHTML = html;
-      }
-
-      function updateReadyBtn(state) {
-        if (state.phase === 'waiting' && myId && state.players && state.players[myId]) {
-          myReady = !!state.players[myId].ready;
-          readyBtn.style.display = 'inline-block';
-          if (myReady) {
-            readyBtn.textContent = '已准备';
-            readyBtn.disabled = true;
-          } else {
-            readyBtn.textContent = '准备';
-            readyBtn.disabled = false;
-          }
-          restartBtn.style.display = 'none';
-        } else {
-          myReady = false;
-        }
-      }
-
-      function updateUI(state) {
-        if (state.phase === 'waiting') {
-          showOverlay('Flappy Bird', '', true);
-          updateReadyBtn(state);
-
-          var count = Object.keys(state.players || {}).length;
-          if (count === 1 && myReady) {
-            overlaySub.textContent = '等待其他玩家加入...';
-          } else if (count === 1) {
-            overlaySub.textContent = '点击下方"准备"开始';
-          } else if (myReady) {
-            overlaySub.textContent = '已准备 · 等待其他玩家... (' + count + '人)';
-          } else {
-            overlaySub.textContent = '点击下方"准备"开始游戏 · ' + count + '人';
-          }
-
-          restartBtn.style.display = 'none';
-          subtitle.textContent = '多人 · 1-8人';
-        } else if (state.phase === 'playing') {
-          hideOverlay();
-          readyBtn.style.display = 'none';
-          restartBtn.style.display = 'none';
-        } else if (state.phase === 'finished') {
-          readyBtn.style.display = 'none';
-          restartBtn.style.display = 'inline-block';
-          restartBtn.disabled = false;
-          subtitle.textContent = '游戏结束';
-
-          var bestPid = '';
-          var bestScore = -1;
-          var players = state.players || {};
-          var order = state.playerOrder || [];
-          for (var i = 0; i < order.length; i++) {
-            var pid = order[i];
-            var sc = players[pid] ? players[pid].score || 0 : 0;
-            if (sc > bestScore) { bestScore = sc; bestPid = pid; }
-          }
-          if (bestPid && bestPid === myId) {
-            showOverlay('恭喜！你赢了！', '最高分: ' + bestScore, true);
-          } else if (bestPid && players[bestPid]) {
-            showOverlay(players[bestPid].name + ' 获胜！', '最高分: ' + bestScore, true);
-          } else {
-            showOverlay('游戏结束', '', true);
-          }
-        }
-      }
+      // ── PRNG ─────────────────────────────────────────
 
       function mulberry32(a) {
         return function () {
-          a |= 0;
-          a = a + 0x6D2B79F5 | 0;
+          a |= 0; a = a + 0x6D2B79F5 | 0;
           var t = Math.imul(a ^ a >>> 15, 1 | a);
           t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         };
       }
-
-      var pipeGapsCache = null;
-      function getPipeGap(index, stateSeed) {
-        var s = stateSeed || seed;
-        if (!pipeGapsCache || pipeGapsCache._seed !== s) {
-          pipeGapsCache = { _seed: s };
-        }
+      function getPipeGap(index, seedVal) {
+        var s = seedVal || seed;
+        if (!pipeGapsCache || pipeGapsCache._seed !== s) pipeGapsCache = { _seed: s };
         if (pipeGapsCache[index] !== undefined) return pipeGapsCache[index];
         var rng = mulberry32((s + index * 1697) | 0);
-        var minY = 70;
-        var maxY = CANVAS_H - GROUND_H - PIPE_GAP - 50;
-        pipeGapsCache[index] = minY + rng() * (maxY - minY);
+        pipeGapsCache[index] = 70 + rng() * (CANVAS_H - GROUND_H - PIPE_GAP - 120);
         return pipeGapsCache[index];
       }
 
-      function renderBird(x, y, vy, color, isSelf, name, alive, timestamp) {
-        if (!alive) return;
-        ctx.save();
-        ctx.translate(x, y);
+      // ── Drawing primitives ───────────────────────────
 
-        var rotation = Math.min(Math.max(vy * 0.08, -0.5), 0.5);
-        ctx.rotate(rotation);
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, BIRD_R, BIRD_R * 0.85, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(5, -BIRD_R * 0.25, BIRD_R * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#111';
-        ctx.beginPath();
-        ctx.arc(6, -BIRD_R * 0.28, BIRD_R * 0.15, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#f90';
-        ctx.beginPath();
-        ctx.moveTo(BIRD_R * 0.7, -BIRD_R * 0.1);
-        ctx.lineTo(BIRD_R * 1.3, BIRD_R * 0.1);
-        ctx.lineTo(BIRD_R * 0.7, BIRD_R * 0.25);
-        ctx.closePath();
-        ctx.fill();
-
-        if (!isSelf && name) {
-          ctx.rotate(-rotation);
-          ctx.fillStyle = 'rgba(255,255,255,0.8)';
-          ctx.font = 'bold 10px system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(name, 0, -BIRD_R - 10);
-        }
-
-        ctx.restore();
-      }
-
-      function drawSkyGradient() {
+      function drawSky() {
         var grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
-        grad.addColorStop(0, '#4ecdc4');
-        grad.addColorStop(0.5, '#6cd9d1');
-        grad.addColorStop(1, '#a8e6cf');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        grad.addColorStop(0, '#4ecdc4'); grad.addColorStop(0.5, '#6cd9d1'); grad.addColorStop(1, '#a8e6cf');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
       }
 
       function drawGround(offset) {
-        var gh = GROUND_H;
-        var y = CANVAS_H - gh;
-
-        ctx.fillStyle = '#d4a853';
-        ctx.fillRect(0, y, CANVAS_W, 8);
-
-        ctx.fillStyle = '#8B6914';
-        ctx.fillRect(0, y + 8, CANVAS_W, 4);
-
-        ctx.fillStyle = '#654321';
-        ctx.fillRect(0, y + 12, CANVAS_W, gh - 12);
-
+        var gy = CANVAS_H - GROUND_H;
+        ctx.fillStyle = '#d4a853'; ctx.fillRect(0, gy, CANVAS_W, 8);
+        ctx.fillStyle = '#8B6914'; ctx.fillRect(0, gy + 8, CANVAS_W, 4);
+        ctx.fillStyle = '#654321'; ctx.fillRect(0, gy + 12, CANVAS_W, GROUND_H - 12);
         ctx.fillStyle = '#7a5c30';
-        var patternOffset = offset % 40;
-        for (var x = -patternOffset; x < CANVAS_W + 40; x += 40) {
-          ctx.fillRect(x, y + 12, 20, 3);
-          ctx.fillRect(x + 10, y + 18, 15, 3);
+        var po = offset % 40;
+        for (var x = -po; x < CANVAS_W + 40; x += 40) {
+          ctx.fillRect(x, gy + 12, 20, 3); ctx.fillRect(x + 10, gy + 18, 15, 3);
         }
-
-        ctx.fillStyle = '#3d2b0f';
-        ctx.fillRect(0, y + 4, CANVAS_W, 4);
+        ctx.fillStyle = '#3d2b0f'; ctx.fillRect(0, gy + 4, CANVAS_W, 4);
       }
 
-      function drawPipe(x, gapY) {
-        var pipeX = x;
-        var headH = 25;
-        var headW = PIPE_W + 8;
+      function drawPipe(px, gapY) {
+        var headH = 25, headW = PIPE_W + 8;
 
         ctx.fillStyle = '#2d8a4e';
-        ctx.fillRect(pipeX, 0, PIPE_W, gapY - headH);
-
+        ctx.fillRect(px, 0, PIPE_W, gapY - headH);
         ctx.fillStyle = '#35a05c';
-        ctx.fillRect(pipeX - 4, gapY - headH, headW, headH);
-
+        ctx.fillRect(px - 4, gapY - headH, headW, headH);
         ctx.fillStyle = '#1f6b37';
-        ctx.fillRect(pipeX - 4, gapY - 4, headW, 6);
-        ctx.fillRect(pipeX, 0, 4, gapY - headH + 6);
+        ctx.fillRect(px - 4, gapY - 4, headW, 6);
+        ctx.fillRect(px, 0, 4, gapY - headH + 6);
 
         var topH = CANVAS_H - GROUND_H - gapY - PIPE_GAP;
-
         ctx.fillStyle = '#2d8a4e';
-        ctx.fillRect(pipeX, gapY + PIPE_GAP, PIPE_W, topH - headH);
-
+        ctx.fillRect(px, gapY + PIPE_GAP, PIPE_W, topH - headH);
         ctx.fillStyle = '#35a05c';
-        ctx.fillRect(pipeX - 4, gapY + PIPE_GAP, headW, headH);
-
+        ctx.fillRect(px - 4, gapY + PIPE_GAP, headW, headH);
         ctx.fillStyle = '#1f6b37';
-        ctx.fillRect(pipeX - 4, gapY + PIPE_GAP, headW, 6);
-        ctx.fillRect(pipeX, gapY + PIPE_GAP + headH, 4, topH - headH);
+        ctx.fillRect(px - 4, gapY + PIPE_GAP, headW, 6);
+        ctx.fillRect(px, gapY + PIPE_GAP + headH, 4, topH - headH);
       }
 
       function drawPipes(elapsed) {
-        var scrollOffset = elapsed * PIPE_SPEED;
-        var firstPipeIdx = Math.floor(scrollOffset / PIPE_SPACING) - 1;
-
-        for (var i = firstPipeIdx; i < firstPipeIdx + 6; i++) {
+        var so = elapsed * PIPE_SPEED;
+        var first = Math.floor(so / PIPE_SPACING) - 1;
+        for (var i = first; i < first + 6; i++) {
           if (i < 0) continue;
-          var pipeX = CANVAS_W + i * PIPE_SPACING - scrollOffset;
-          var gapY = getPipeGap(i, seed);
-          if (pipeX > CANVAS_W + PIPE_W || pipeX < -PIPE_W) continue;
-          drawPipe(pipeX, gapY);
+          var px = CANVAS_W + i * PIPE_SPACING - so;
+          if (px > CANVAS_W + PIPE_W || px < -PIPE_W) continue;
+          drawPipe(px, getPipeGap(i, seed));
         }
       }
 
+      function drawBird(x, y, vy, color, isSelf, name, alive, ts) {
+        if (!alive) return;
+        ctx.save(); ctx.translate(x, y);
+        var rot = Math.min(Math.max(vy * 0.08, -0.5), 0.5);
+        ctx.rotate(rot);
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.ellipse(0, 0, BIRD_R, BIRD_R * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(5, -BIRD_R * 0.25, BIRD_R * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(6, -BIRD_R * 0.28, BIRD_R * 0.15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f90';
+        ctx.beginPath();
+        ctx.moveTo(BIRD_R * 0.7, -BIRD_R * 0.1); ctx.lineTo(BIRD_R * 1.3, BIRD_R * 0.1); ctx.lineTo(BIRD_R * 0.7, BIRD_R * 0.25);
+        ctx.closePath(); ctx.fill();
+        if (!isSelf && name) {
+          ctx.rotate(-rot);
+          ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = 'bold 9px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(name, 0, -BIRD_R - 10);
+        }
+        ctx.restore();
+      }
+
+      function drawScoreboard(state) {
+        var players = state.players || {};
+        var order = state.playerOrder || [];
+        var colors = state.playerColors || {};
+        if (!order.length) return;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, 0, CANVAS_W, 34);
+
+        var available = CANVAS_W - 16;
+        var cardW = Math.min(90, available / Math.max(order.length, 1));
+        var totalW = cardW * order.length;
+        var startX = (CANVAS_W - totalW) / 2;
+
+        for (var i = 0; i < order.length; i++) {
+          var pid = order[i], p = players[pid];
+          if (!p) continue;
+          var c = colors[pid] || {};
+          var cx = startX + i * cardW;
+          var isDead = !p.alive;
+
+          ctx.globalAlpha = isDead ? 0.4 : 1;
+          ctx.fillStyle = c.color || '#888';
+          ctx.beginPath(); ctx.arc(cx + 8, 17, 5, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = '#ddd';
+          ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left';
+          var nameText = (p.name || '...').slice(0, 4);
+          ctx.fillText(nameText, cx + 17, 22);
+
+          ctx.fillStyle = '#ffd700';
+          ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'right';
+          ctx.fillText(String(p.score || 0), cx + cardW - 6, 22);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      function drawCenterOverlay(title, sub) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        if (title) {
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 36px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(title, CANVAS_W / 2, CANVAS_H / 2 - 8);
+        }
+        if (sub) {
+          ctx.fillStyle = '#ccc'; ctx.font = '14px system-ui, sans-serif';
+          ctx.fillText(sub, CANVAS_W / 2, CANVAS_H / 2 + 26);
+        }
+      }
+
+      // ── Collision detection ──────────────────────────
+
       function checkCollision(birdY, elapsed) {
-        var birdTop = birdY - BIRD_R + COLLISION_PADDING;
-        var birdBot = birdY + BIRD_R - COLLISION_PADDING;
-
-        if (birdTop <= 0) return true;
-        if (birdBot >= CANVAS_H - GROUND_H) return true;
-
-        var scrollOffset = elapsed * PIPE_SPEED;
-        var firstPipeIdx = Math.floor(scrollOffset / PIPE_SPACING) - 1;
-
-        for (var i = firstPipeIdx; i < firstPipeIdx + 6; i++) {
+        var top = birdY - BIRD_R + 2, bot = birdY + BIRD_R - 2;
+        if (top <= 0 || bot >= CANVAS_H - GROUND_H) return true;
+        var so = elapsed * PIPE_SPEED;
+        var first = Math.floor(so / PIPE_SPACING) - 1;
+        for (var i = first; i < first + 6; i++) {
           if (i < 0) continue;
-          var pipeX = CANVAS_W + i * PIPE_SPACING - scrollOffset;
+          var px = CANVAS_W + i * PIPE_SPACING - so;
           var gapY = getPipeGap(i, seed);
-          if (pipeX + PIPE_W < BIRD_X - BIRD_R || pipeX > BIRD_X + BIRD_R) continue;
-          if (birdTop < gapY || birdBot > gapY + PIPE_GAP) return true;
+          if (px + PIPE_W < BIRD_X - BIRD_R || px > BIRD_X + BIRD_R) continue;
+          if (top < gapY || bot > gapY + PIPE_GAP) return true;
         }
         return false;
       }
 
       function getPassedPipeCount(elapsed) {
-        var scrollOffset = elapsed * PIPE_SPEED;
-        var birdLeft = BIRD_X - BIRD_R;
-        var count = 0;
+        var so = elapsed * PIPE_SPEED, birdLeft = BIRD_X - BIRD_R, count = 0;
         for (var i = 0; i < 100; i++) {
-          var pipeX = CANVAS_W + i * PIPE_SPACING - scrollOffset;
-          if (pipeX + PIPE_W < birdLeft) count++;
-          else break;
+          if (CANVAS_W + i * PIPE_SPACING - so + PIPE_W < birdLeft) count++; else break;
         }
         return count;
       }
 
+      // ── Main render ──────────────────────────────────
+
       function renderFrame(timestamp) {
         if (!lastFrameTime) lastFrameTime = timestamp;
-
         ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-        drawSkyGradient();
+        drawSky();
 
-        if (phase === 'playing' && startTime > 0) {
-          var elapsed = (timestamp - startTime) * 0.06;
+        var state = parti.getState();
 
-          drawPipes(elapsed);
-          drawGround(elapsed * PIPE_SPEED);
+        // ── COUNTDOWN ──────────────────────────────────
+        if (phase === 'countdown') {
+          drawGround(0);
+          for (var jc = 0; jc < 3; jc++) { drawPipe(CANVAS_W + jc * PIPE_SPACING, 180); }
+          if (state) drawScoreboard(state);
+          ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 34, CANVAS_W, CANVAS_H - 34);
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 80px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(String(countdown), CANVAS_W / 2, CANVAS_H / 2 + 4);
+          ctx.font = '15px system-ui, sans-serif';
+          ctx.fillStyle = '#ccc';
+          ctx.fillText('已准备 · 即将开始...', CANVAS_W / 2, CANVAS_H / 2 + 42);
+          return;
+        }
+
+        // ── PLAYING ────────────────────────────────────
+        if (phase === 'playing' && gameStartTime > 0) {
+          var elapsedFrames = (timestamp - gameStartTime) / 16.667;
+          drawPipes(elapsedFrames);
+          drawGround(elapsedFrames * PIPE_SPEED);
 
           if (myBird.alive) {
             myBird.vy += GRAVITY;
             if (myBird.vy > MAX_FALL) myBird.vy = MAX_FALL;
-            if (flapPressed) {
-              myBird.vy = FLAP_VEL;
-              flapPressed = false;
-            }
+            if (flapPending) { myBird.vy = FLAP_VEL; flapPending = false; }
             myBird.y += myBird.vy;
-
-            if (checkCollision(myBird.y, elapsed)) {
-              myBird.alive = false;
-              myBird.score = getPassedPipeCount(elapsed);
+            if (checkCollision(myBird.y, elapsedFrames)) {
+              myBird.alive = false; myBird.score = getPassedPipeCount(elapsedFrames);
               hasDied = true;
               parti.action('die', { score: myBird.score });
             } else {
-              myBird.score = getPassedPipeCount(elapsed);
+              myBird.score = getPassedPipeCount(elapsedFrames);
             }
           }
 
-          var state = parti.getState();
           var players = state ? state.players : {};
-          var playerColors = state ? state.playerColors : {};
+          var pColors = state ? state.playerColors : {};
           var order = state ? state.playerOrder : [];
 
           for (var oi = 0; oi < order.length; oi++) {
-            var pid = order[oi];
-            var p = players[pid];
+            var pid = order[oi], p = players[pid];
             if (!p) continue;
-            var isSelf = pid === myId;
-
-            if (isSelf) {
+            if (pid === myId) {
               if (!myBird.alive) continue;
-              renderBird(BIRD_X, myBird.y, myBird.vy,
-                (playerColors[pid] && playerColors[pid].color) || '#fff',
-                true, '', true, timestamp);
+              drawBird(BIRD_X, myBird.y, myBird.vy, (pColors[pid] && pColors[pid].color) || '#fff', true, '', true, timestamp);
             } else {
               if (!p.alive) continue;
-              if (!remoteBirds[pid]) {
-                remoteBirds[pid] = createRemoteBird();
-              }
+              if (!remoteBirds[pid]) remoteBirds[pid] = { y: 280, vy: 0, alive: true, score: 0 };
               var rb = remoteBirds[pid];
-              rb.vy += GRAVITY;
-              if (rb.vy > MAX_FALL) rb.vy = MAX_FALL;
-              rb.y += rb.vy;
-
-              ctx.globalAlpha = 0.55;
-              renderBird(BIRD_X, rb.y, rb.vy,
-                (playerColors[pid] && playerColors[pid].color) || '#888',
-                false, p.name || '', true, timestamp);
+              rb.vy += GRAVITY; if (rb.vy > MAX_FALL) rb.vy = MAX_FALL; rb.y += rb.vy;
+              ctx.globalAlpha = 0.5;
+              drawBird(BIRD_X, rb.y, rb.vy, (pColors[pid] && pColors[pid].color) || '#888', false, p.name || '', true, timestamp);
               ctx.globalAlpha = 1;
             }
           }
 
+          if (state) drawScoreboard(state);
+
           if (myBird.alive) {
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 36px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(String(myBird.score), CANVAS_W / 2, 60);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 36px system-ui, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(String(myBird.score), CANVAS_W / 2, 68);
           } else {
             var hasSurvivors = false;
             for (var si = 0; si < order.length; si++) {
-              var sp = players[order[si]];
-              if (sp && sp.alive && order[si] !== myId) {
-                hasSurvivors = true;
-                break;
-              }
+              if (state && state.players[order[si]] && state.players[order[si]].alive && order[si] !== myId) { hasSurvivors = true; break; }
             }
             if (hasSurvivors) {
-              ctx.fillStyle = 'rgba(0,0,0,0.35)';
-              ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-              ctx.fillStyle = '#fff';
-              ctx.font = 'bold 22px system-ui, sans-serif';
-              ctx.textAlign = 'center';
-              ctx.fillText('观战中...', CANVAS_W / 2, CANVAS_H / 2 - 10);
-              ctx.font = '16px system-ui, sans-serif';
-              ctx.fillText('得分: ' + myBird.score, CANVAS_W / 2, CANVAS_H / 2 + 20);
+              drawCenterOverlay('观战中...', '得分: ' + myBird.score);
             }
           }
-        } else {
+          return;
+        }
+
+        // ── FINISHED ───────────────────────────────────
+        if (phase === 'finished') {
           drawGround(0);
+          for (var jf = 0; jf < 3; jf++) { drawPipe(CANVAS_W + jf * PIPE_SPACING, 180); }
+          if (state) drawScoreboard(state);
 
-          for (var j = 0; j < 3; j++) {
-            var px = CANVAS_W + j * PIPE_SPACING;
-            drawPipe(px, 180);
+          var bestPid = '', bestScore = -1;
+          var fPlayers = state ? state.players : {};
+          var fOrder = state ? state.playerOrder : [];
+          for (var fi = 0; fi < fOrder.length; fi++) {
+            var fpid = fOrder[fi], sc = fPlayers[fpid] ? fPlayers[fpid].score || 0 : 0;
+            if (sc > bestScore) { bestScore = sc; bestPid = fpid; }
           }
+          if (bestPid && bestPid === myId) {
+            drawCenterOverlay('恭喜！你赢了！', '最高分: ' + bestScore);
+          } else if (bestPid && fPlayers[bestPid]) {
+            drawCenterOverlay(fPlayers[bestPid].name + ' 获胜！', '最高分: ' + bestScore);
+          } else {
+            drawCenterOverlay('游戏结束', '');
+          }
+          return;
+        }
 
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 20px system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          if (phase === 'waiting') {
-            var state2 = parti.getState();
-            var pcount = state2 ? Object.keys(state2.players || {}).length : 0;
-            ctx.fillText('Flappy Bird', CANVAS_W / 2, CANVAS_H / 2 - 10);
-            ctx.font = '13px system-ui, sans-serif';
-            if (pcount === 0) {
-              ctx.fillText('等待玩家加入...', CANVAS_W / 2, CANVAS_H / 2 + 30);
-            } else if (myReady) {
-              ctx.fillText('已准备！等待其他玩家...', CANVAS_W / 2, CANVAS_H / 2 + 30);
-            } else {
-              ctx.fillText('点击下方"准备"开始游戏', CANVAS_W / 2, CANVAS_H / 2 + 30);
-            }
-          } else if (phase === 'finished') {
-            var st3 = parti.getState();
-            var myScore = myBird.score;
-            if (st3 && st3.players && st3.players[myId]) {
-              myScore = st3.players[myId].score || 0;
-            }
-            ctx.fillText('游戏结束', CANVAS_W / 2, CANVAS_H / 2 - 10);
-            ctx.font = '16px system-ui, sans-serif';
-            ctx.fillText('你的得分: ' + myScore, CANVAS_W / 2, CANVAS_H / 2 + 25);
-          }
+        // ── WAITING ────────────────────────────────────
+        drawGround(0);
+        for (var jw = 0; jw < 3; jw++) { drawPipe(CANVAS_W + jw * PIPE_SPACING, 180); }
+        if (state) drawScoreboard(state);
+
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 28px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Flappy Bird', CANVAS_W / 2, CANVAS_H / 2 - 30);
+        ctx.font = 'bold 15px system-ui, sans-serif';
+        ctx.fillStyle = '#ccc';
+        ctx.fillText('联机版', CANVAS_W / 2, CANVAS_H / 2 + 6);
+
+        if (myReady) {
+          ctx.font = '14px system-ui, sans-serif';
+          ctx.fillStyle = '#4ECDC4';
+          ctx.fillText('已准备，等待其他玩家...', CANVAS_W / 2, CANVAS_H / 2 + 40);
+        } else if (myId) {
+          ctx.font = '14px system-ui, sans-serif';
+          ctx.fillStyle = '#aaa';
+          ctx.fillText('点击下方按钮准备开始', CANVAS_W / 2, CANVAS_H / 2 + 40);
         }
       }
+
+      // ── Game loop ────────────────────────────────────
 
       function gameLoop(timestamp) {
         renderFrame(timestamp);
         lastFrameTime = timestamp;
         animFrameId = requestAnimationFrame(gameLoop);
       }
-
       function startGameLoop() {
         if (animFrameId) return;
         animFrameId = requestAnimationFrame(gameLoop);
       }
 
+      // ── State handler ────────────────────────────────
+
       function handleState(state) {
         if (!state) return;
-
         if (state.seed !== undefined) seed = state.seed;
 
+        if (state.phase === 'countdown' && phase !== 'countdown') {
+          countdown = state.countdown || 3;
+          readyBtn.classList.add('dim');
+          readyBtn.textContent = '已准备 ✓';
+          readyBtn.disabled = true;
+          readyBtn.style.display = '';
+          restartBtn.style.display = 'none';
+        }
         if (state.phase === 'playing' && phase !== 'playing') {
           myBird = { y: 280, vy: 0, alive: true, score: 0 };
-          remoteBirds = {};
-          hasDied = false;
-          flapPressed = false;
-          hideOverlay();
+          remoteBirds = {}; hasDied = false; flapPending = false;
+          readyBtn.style.display = 'none';
+          restartBtn.style.display = 'none';
         }
-
-        if (state.phase === 'playing' && state.startTime) {
-          startTime = state.startTime;
-        }
-
         if (state.phase === 'finished' && phase !== 'finished') {
           var st = parti.getState();
-          var myP = (st && st.players && st.players[myId]) ? st.players[myId] : null;
-          if (myP) myBird.score = myP.score || 0;
+          var mp = (st && st.players && st.players[myId]) ? st.players[myId] : null;
+          if (mp) myBird.score = mp.score || 0;
           remoteBirds = {};
+          readyBtn.style.display = 'none';
+          restartBtn.style.display = '';
+          restartBtn.disabled = false;
         }
-
         if (state.phase === 'waiting') {
-          startTime = 0;
-          hasDied = false;
-          updateReadyBtn(state);
+          gameStartTime = 0; countdown = 0; hasDied = false;
         }
 
         phase = state.phase;
-        renderScoreboard(state);
-        updateUI(state);
         pipeGapsCache = null;
-      }
 
-      function handleFlap(pid) {
-        if (pid === myId) return;
-        if (remoteBirds[pid]) {
-          remoteBirds[pid].vy = FLAP_VEL;
+        if (state.phase === 'waiting' && myId && state.players && state.players[myId]) {
+          myReady = !!state.players[myId].ready;
+          if (myReady) {
+            readyBtn.textContent = '已准备 ✓'; readyBtn.disabled = true; readyBtn.classList.add('dim');
+          } else {
+            readyBtn.textContent = '准备'; readyBtn.disabled = false; readyBtn.classList.remove('dim');
+          }
+          readyBtn.style.display = '';
+          restartBtn.style.display = 'none';
         }
-        flapPressed = false;
       }
 
-      function onTapOrKey(e) {
+      // ── Events ───────────────────────────────────────
+
+      function handleRemoteFlap(pid) {
+        if (pid === myId) return;
+        if (remoteBirds[pid]) remoteBirds[pid].vy = FLAP_VEL;
+      }
+
+      function onInput(e) {
         if (phase === 'playing' && myBird.alive && !hasDied) {
           parti.action('flap', {});
-          flapPressed = true;
+          flapPending = true;
           e.preventDefault();
         }
       }
@@ -678,92 +476,73 @@
         if (phase === 'waiting' && !myReady) {
           parti.action('ready', {});
           myReady = true;
-          readyBtn.textContent = '已准备';
+          readyBtn.textContent = '已准备 ✓';
           readyBtn.disabled = true;
+          readyBtn.classList.add('dim');
         }
       });
 
       restartBtn.addEventListener('click', function () {
         parti.action('restart', {});
         myBird = { y: 280, vy: 0, alive: true, score: 0 };
-        hasDied = false;
-        remoteBirds = {};
+        hasDied = false; remoteBirds = {};
         restartBtn.style.display = 'none';
       });
 
-      canvasWrap.addEventListener('click', onTapOrKey);
-      canvasWrap.addEventListener('touchstart', function (e) {
-        onTapOrKey(e);
-      }, { passive: false });
-
+      gameRoot.addEventListener('click', onInput);
+      gameRoot.addEventListener('touchstart', function (e) { onInput(e); }, { passive: false });
       document.addEventListener('keydown', function (e) {
-        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-          onTapOrKey(e);
-          e.preventDefault();
-        }
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') onInput(e);
       });
 
-      parti.onState(function (state) {
-        handleState(state);
-      });
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('orientationchange', function () { setTimeout(resizeCanvas, 200); });
 
-      parti.onEvent('player:flap', function (payload) {
-        var pid = payload && payload.playerId;
-        if (pid) handleFlap(pid);
+      parti.onState(function (state) { handleState(state); });
+      parti.onEvent('player:flap', function (p) { if (p && p.playerId) handleRemoteFlap(p.playerId); });
+      parti.onEvent('player:died', function (p) {
+        if (p && p.playerId && remoteBirds[p.playerId]) remoteBirds[p.playerId].alive = false;
       });
-
-      parti.onEvent('player:died', function (payload) {
-        if (payload && payload.playerId && remoteBirds[payload.playerId]) {
-          remoteBirds[payload.playerId].alive = false;
-        }
+      parti.onEvent('game:countdown', function (p) {
+        if (p && typeof p.count === 'number') countdown = p.count;
       });
-
-      parti.onEvent('game:start', function (payload) {
-        if (payload && payload.startTime) {
-          startTime = payload.startTime;
-        }
-        pipeGapsCache = null;
+      parti.onEvent('game:start', function () {
+        gameStartTime = performance.now(); pipeGapsCache = null;
       });
-
       parti.onEvent('game:over', function () {
         var st = parti.getState();
         if (st) {
           phase = st.phase;
-          if (st.players && st.players[myId]) {
-            myBird.score = st.players[myId].score || 0;
-          }
-          updateUI(st);
-          renderScoreboard(st);
+          if (st.players && st.players[myId]) myBird.score = st.players[myId].score || 0;
+          handleState(st);
         }
       });
-
       parti.onEvent('game:reset', function () {
         myBird = { y: 280, vy: 0, alive: true, score: 0 };
-        hasDied = false;
-        remoteBirds = {};
-        pipeGapsCache = null;
-        startTime = 0;
-        myReady = false;
-        phase = 'waiting';
+        hasDied = false; remoteBirds = {}; pipeGapsCache = null;
+        gameStartTime = 0; countdown = 0; myReady = false; phase = 'waiting';
         restartBtn.style.display = 'none';
-        hideOverlay();
+        readyBtn.style.display = '';
+        readyBtn.textContent = '准备';
+        readyBtn.disabled = false;
+        readyBtn.classList.remove('dim');
       });
 
+      // ── Init ─────────────────────────────────────────
+
       startGameLoop();
-
       myId = parti.playerId;
-
       parti.ready();
+      resizeCanvas();
 
       var initial = parti.getState();
-      if (initial) {
-        handleState(initial);
-      }
+      if (initial) handleState(initial);
 
       setTimeout(function () {
-        var state = parti.getState();
-        if (state) handleState(state);
-      }, 150);
+        var s = parti.getState();
+        if (s) handleState(s);
+        resizeCanvas();
+      }, 200);
     })();
   </script>
 </body>

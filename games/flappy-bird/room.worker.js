@@ -49,6 +49,42 @@ function scheduleTick(ctx) {
   });
 }
 
+function startGame(ctx) {
+  var state = ctx.state;
+  state.phase = 'playing';
+  state.startTime = Date.now();
+  state.pipeGaps = generatePipeGaps(state.seed, 100, 600, 80, PIPE_GAP);
+
+  for (var j = 0; j < state.playerOrder.length; j++) {
+    var pid = state.playerOrder[j];
+    if (state.players[pid]) {
+      state.players[pid].score = 0;
+      state.players[pid].alive = true;
+    }
+  }
+
+  ctx.broadcast('game:start', { startTime: state.startTime });
+  scheduleTick(ctx);
+}
+
+function startCountdown(ctx) {
+  var state = ctx.state;
+  state.phase = 'countdown';
+  state.countdown = 3;
+  ctx.broadcast('game:countdown', { count: 3 });
+
+  function tick() {
+    state.countdown--;
+    if (state.countdown <= 0) {
+      startGame(ctx);
+    } else {
+      ctx.broadcast('game:countdown', { count: state.countdown });
+      ctx.setTimer('countdown', 1000, tick);
+    }
+  }
+  ctx.setTimer('countdown', 1000, tick);
+}
+
 function checkAndStart(ctx) {
   var state = ctx.state;
   if (state.phase !== 'waiting') return;
@@ -64,20 +100,7 @@ function checkAndStart(ctx) {
   }
   if (!allReady) return;
 
-  state.phase = 'playing';
-  state.startTime = Date.now();
-  state.pipeGaps = generatePipeGaps(state.seed, 100, 600, 80, PIPE_GAP);
-
-  for (var j = 0; j < state.playerOrder.length; j++) {
-    var pid = state.playerOrder[j];
-    if (state.players[pid]) {
-      state.players[pid].score = 0;
-      state.players[pid].alive = true;
-    }
-  }
-
-  ctx.broadcast('game:start', { startTime: state.startTime });
-  scheduleTick(ctx);
+  startCountdown(ctx);
 }
 
 export default defineRoom({
@@ -101,6 +124,7 @@ export default defineRoom({
   },
 
   onJoin: function (ctx, player) {
+    if (!player) return;
     var state = ctx.state;
     if (state.players[player.id]) return;
 
@@ -126,6 +150,7 @@ export default defineRoom({
   },
 
   onLeave: function (ctx, player) {
+    if (!player) return;
     var state = ctx.state;
     if (state.players[player.id]) {
       state.players[player.id].alive = false;
@@ -161,6 +186,7 @@ export default defineRoom({
   },
 
   onReconnect: function (ctx, player) {
+    if (!player) return;
     if (!ctx.state.players[player.id]) {
       var idx = ctx.state.playerOrder.length;
       var color = BIRD_COLORS[idx % BIRD_COLORS.length];
@@ -176,38 +202,48 @@ export default defineRoom({
   },
 
   actions: {
-    ready: function (ctx) {
+    ready: function (ctx, _ref) {
       var state = ctx.state;
+      var player = _ref && _ref.player;
+      if (!player) return;
       if (state.phase !== 'waiting') return;
-      if (!state.players[ctx.player.id]) return;
+      if (!state.players[player.id]) return;
 
-      state.players[ctx.player.id].ready = true;
+      state.players[player.id].ready = true;
       checkAndStart(ctx);
     },
 
-    unready: function (ctx) {
+    unready: function (ctx, _ref) {
       var state = ctx.state;
+      var player = _ref && _ref.player;
+      if (!player) return;
       if (state.phase !== 'waiting') return;
-      if (!state.players[ctx.player.id]) return;
+      if (!state.players[player.id]) return;
 
-      state.players[ctx.player.id].ready = false;
+      state.players[player.id].ready = false;
     },
 
-    flap: function (ctx) {
+    flap: function (ctx, _ref) {
       var state = ctx.state;
+      var player = _ref && _ref.player;
+      if (!player) return;
       if (state.phase !== 'playing') return;
-      if (!state.players[ctx.player.id] || !state.players[ctx.player.id].alive) return;
+      if (!state.players[player.id] || !state.players[player.id].alive) return;
+
       ctx.broadcast('player:flap', {
-        playerId: ctx.player.id,
+        playerId: player.id,
         time: Date.now(),
       });
     },
 
-    die: function (ctx, payload) {
+    die: function (ctx, _ref) {
       var state = ctx.state;
+      var player = _ref && _ref.player;
+      var payload = _ref && _ref.payload;
+      if (!player) return;
       if (state.phase !== 'playing') return;
-      if (!state.players[ctx.player.id]) return;
-      if (!state.players[ctx.player.id].alive) return;
+      if (!state.players[player.id]) return;
+      if (!state.players[player.id].alive) return;
 
       var score = (payload && payload.score) ? payload.score : 0;
 
@@ -216,11 +252,11 @@ export default defineRoom({
       if (score > maxScore) score = maxScore;
       if (score < 0) score = 0;
 
-      state.players[ctx.player.id].alive = false;
-      state.players[ctx.player.id].score = score;
+      state.players[player.id].alive = false;
+      state.players[player.id].score = score;
 
       ctx.broadcast('player:died', {
-        playerId: ctx.player.id,
+        playerId: player.id,
         score: score,
       });
 
