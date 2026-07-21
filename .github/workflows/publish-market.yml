@@ -61,8 +61,8 @@ jobs:
             rm -rf "$TMPDIR"
           done
 
-      - name: Refresh market issues on glink25/Parti
-        if: env.MARKET_REGISTRY_TOKEN
+      - name: Publish or refresh market issues on glink25/Parti
+        if: ${{ secrets.MARKET_REGISTRY_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.MARKET_REGISTRY_TOKEN }}
         run: |
@@ -72,7 +72,10 @@ jobs:
               continue
             fi
             TITLE="[parti-room] glink24/parti-arcades@market-${game}"
-            echo "Looking for issue: ${TITLE}"
+            echo "=== ${game} ==="
+
+            DESC=$(python3 -c "import json; d=json.load(open('games/${game}/parti.room.json')); print(d.get('description',''))" 2>/dev/null || true)
+            VERSION=$(python3 -c "import json; d=json.load(open('games/${game}/parti.room.json')); print(d.get('version','0.1.0'))" 2>/dev/null || true)
 
             ISSUE_NUM=$(gh issue list \
               --repo "$REGISTRY" \
@@ -82,16 +85,23 @@ jobs:
               --jq '.[0].number' 2>/dev/null || true)
 
             if [ -z "$ISSUE_NUM" ] || [ "$ISSUE_NUM" = "null" ]; then
-              echo "  No open issue found for ${game}, skipping"
-              continue
+              echo "  No existing issue, creating..."
+              ISSUE_BODY=$(printf '### 房间仓库 / Room repository\n\n%s\n\n### Git ref（可选 / optional）\n\n%s\n\n### 游戏简介 / Game introduction\n\n%s\n\n### 发布前确认 / Pre-flight checklist\n\n- [x] 仓库中包含 parti.room.json 和 manifest entry 声明的全部文件，且已在 Parti web 中验证可正常游玩\n- [x] manifest 的 id、name、version、description 填写完整（市场列表直接展示）\n\n> 版本: %s' \
+                "glink24/parti-arcades" \
+                "market-${game}" \
+                "${DESC}" \
+                "${VERSION}")
+              gh issue create \
+                --repo "$REGISTRY" \
+                --title "$TITLE" \
+                --body "$ISSUE_BODY"
+              echo "  Issue created, waiting for triage"
+            else
+              echo "  Found issue #${ISSUE_NUM}, refreshing..."
+              BODY=$(gh issue view "$ISSUE_NUM" --repo "$REGISTRY" --json body --jq '.body')
+              TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+              UPDATED_BODY=$(printf '%s\n\n<!-- parti-auto-refresh: %s -->' "$BODY" "$TIMESTAMP")
+              echo "$UPDATED_BODY" | gh issue edit "$ISSUE_NUM" --repo "$REGISTRY" --body-file -
+              echo "  Issue #${ISSUE_NUM} refreshed"
             fi
-
-            echo "  Found issue #${ISSUE_NUM}, refreshing..."
-
-            BODY=$(gh issue view "$ISSUE_NUM" --repo "$REGISTRY" --json body --jq '.body')
-            TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-            UPDATED_BODY=$(printf '%s\n\n<!-- parti-auto-refresh: %s -->' "$BODY" "$TIMESTAMP")
-
-            echo "$UPDATED_BODY" | gh issue edit "$ISSUE_NUM" --repo "$REGISTRY" --body-file -
-            echo "  Issue #${ISSUE_NUM} refreshed, triage will re-check"
           done
