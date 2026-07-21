@@ -13,6 +13,8 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      REGISTRY_TOKEN: ${{ secrets.MARKET_REGISTRY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,7 +64,7 @@ jobs:
           done
 
       - name: Publish or refresh market issues on glink25/Parti
-        if: ${{ secrets.MARKET_REGISTRY_TOKEN != '' }}
+        if: ${{ env.REGISTRY_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.MARKET_REGISTRY_TOKEN }}
         run: |
