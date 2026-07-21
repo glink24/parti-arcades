@@ -153,12 +153,13 @@
         ctx.fillRect(px, 0, 4, gapY - headH + 6);
 
         var topH = CANVAS_H - GROUND_H - gapY - PIPE_GAP;
-        ctx.fillStyle = '#2d8a4e';
-        ctx.fillRect(px, gapY + PIPE_GAP, PIPE_W, topH - headH);
         ctx.fillStyle = '#35a05c';
         ctx.fillRect(px - 4, gapY + PIPE_GAP, headW, headH);
         ctx.fillStyle = '#1f6b37';
         ctx.fillRect(px - 4, gapY + PIPE_GAP, headW, 6);
+        ctx.fillStyle = '#2d8a4e';
+        ctx.fillRect(px, gapY + PIPE_GAP + headH, PIPE_W, topH - headH);
+        ctx.fillStyle = '#1f6b37';
         ctx.fillRect(px, gapY + PIPE_GAP + headH, 4, topH - headH);
       }
 
@@ -168,7 +169,7 @@
         for (var i = first; i < first + 6; i++) {
           if (i < 0) continue;
           var px = CANVAS_W + i * PIPE_SPACING - so;
-          if (px > CANVAS_W + PIPE_W || px < -PIPE_W) continue;
+          if (px > CANVAS_W + PIPE_W + 8 || px < -PIPE_W - 8) continue;
           drawPipe(px, getPipeGap(i, seed));
         }
       }
@@ -257,7 +258,7 @@
           if (i < 0) continue;
           var px = CANVAS_W + i * PIPE_SPACING - so;
           var gapY = getPipeGap(i, seed);
-          if (px + PIPE_W < BIRD_X - BIRD_R || px > BIRD_X + BIRD_R) continue;
+          if (px + PIPE_W + 4 < BIRD_X - BIRD_R || px - 4 > BIRD_X + BIRD_R) continue;
           if (top < gapY || bot > gapY + PIPE_GAP) return true;
         }
         return false;
@@ -266,7 +267,7 @@
       function getPassedPipeCount(elapsed) {
         var so = elapsed * PIPE_SPEED, birdLeft = BIRD_X - BIRD_R, count = 0;
         for (var i = 0; i < 100; i++) {
-          if (CANVAS_W + i * PIPE_SPACING - so + PIPE_W < birdLeft) count++; else break;
+          if (CANVAS_W + i * PIPE_SPACING - so + PIPE_W + 4 < birdLeft) count++; else break;
         }
         return count;
       }
