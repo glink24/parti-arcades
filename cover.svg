@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4ecdc4"/>
+      <stop offset="70%" stop-color="#a8e6cf"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="240" fill="url(#sky)"/>
+  <!-- Ground -->
+  <rect x="0" y="200" width="400" height="8" fill="#d4a853"/>
+  <rect x="0" y="208" width="400" height="32" fill="#654321"/>
+  <!-- Pipes -->
+  <rect x="120" y="0" width="36" height="60" rx="2" fill="#2d8a4e"/>
+  <rect x="116" y="55" width="44" height="14" rx="3" fill="#35a05c"/>
+  <rect x="120" y="140" width="36" height="60" rx="2" fill="#2d8a4e"/>
+  <rect x="116" y="130" width="44" height="14" rx="3" fill="#35a05c"/>
+  <rect x="260" y="0" width="36" height="90" rx="2" fill="#2d8a4e"/>
+  <rect x="256" y="85" width="44" height="14" rx="3" fill="#35a05c"/>
+  <rect x="260" y="160" width="36" height="40" rx="2" fill="#2d8a4e"/>
+  <rect x="256" y="150" width="44" height="14" rx="3" fill="#35a05c"/>
+  <!-- Bird 1 -->
+  <g transform="translate(80,100) rotate(-5)">
+    <ellipse cx="0" cy="0" rx="14" ry="11" fill="#FF6B6B"/>
+    <circle cx="6" cy="-3" r="3.5" fill="white"/>
+    <circle cx="7" cy="-3" r="1.6" fill="#111"/>
+    <polygon points="11,-1 19,1 11,3" fill="#f90"/>
+  </g>
+  <!-- Bird 2 -->
+  <g transform="translate(140,120) rotate(3)">
+    <ellipse cx="0" cy="0" rx="14" ry="11" fill="#4ECDC4"/>
+    <circle cx="6" cy="-3" r="3.5" fill="white"/>
+    <circle cx="7" cy="-3" r="1.6" fill="#111"/>
+    <polygon points="11,-1 19,1 11,3" fill="#f90"/>
+  </g>
+  <!-- Bird 3 -->
+  <g transform="translate(200,95) rotate(-8)">
+    <ellipse cx="0" cy="0" rx="14" ry="11" fill="#45B7D1" opacity="0.5"/>
+    <circle cx="6" cy="-3" r="3.5" fill="white" opacity="0.5"/>
+    <circle cx="7" cy="-3" r="1.6" fill="#111" opacity="0.5"/>
+    <polygon points="11,-1 19,1 11,3" fill="#f90" opacity="0.5"/>
+  </g>
+  <!-- Title -->
+  <text x="200" y="28" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#fff" opacity="0.9">Flappy Bird</text>
+  <text x="200" y="44" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#fff" opacity="0.6">多人联机版</text>
+</svg>

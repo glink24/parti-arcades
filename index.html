@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Flappy Bird 联机版</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100dvh; width: 100%; overflow: hidden;
+      user-select: none; -webkit-user-select: none;
+      touch-action: manipulation;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f13; color: #e8e8ed;
+    }
+    .game-root {
+      position: relative; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; background: #0f0f13;
+    }
+    .game-root canvas {
+      display: block; flex-shrink: 0;
+    }
+    .ui-layer {
+      position: absolute; inset: 0; pointer-events: none;
+    }
+    .btn-area {
+      position: absolute;
+      bottom: clamp(55px, 12%, 100px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px;
+      pointer-events: auto;
+    }
+    .btn {
+      border: none; outline: none;
+      font-size: clamp(13px, 4vw, 16px); font-weight: 600;
+      padding: 10px 28px; border-radius: 28px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, opacity 0.2s;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+      background: #4ECDC4; color: #0f0f13;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn.dim {
+      background: #2a2a38; color: #777;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; background: #2a2a38; color: #777; }
+    .btn.hidden { display: none !important; }
+    @media (hover: hover) {
+      .btn:hover:not(:disabled) { filter: brightness(1.1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-root" id="gameRoot">
+    <canvas id="game" width="400" height="600"></canvas>
+    <div class="ui-layer">
+      <div class="btn-area" id="btnArea">
+        <button class="btn" id="readyBtn">准备</button>
+        <button class="btn" id="restartBtn">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var gameRoot = document.getElementById('gameRoot');
+      var canvas = document.getElementById('game');
+      var ctx = canvas.getContext('2d');
+      var readyBtn = document.getElementById('readyBtn');
+      var restartBtn = document.getElementById('restartBtn');
+
+      var CANVAS_W = 400, CANVAS_H = 600;
+      var GROUND_H = 80, BIRD_X = 80, BIRD_R = 14;
+      var GRAVITY = 0.40, FLAP_VEL = -7.2, MAX_FALL = 8;
+      var PIPE_W = 52, PIPE_GAP = 150, PIPE_SPEED = 2.2, PIPE_SPACING = 180;
+
+      var phase = 'waiting', seed = 0, gameStartTime = 0, countdown = 0;
+      var myId = '', myReady = false;
+      var myBird = { y: 280, vy: 0, alive: true, score: 0 };
+      var remoteBirds = {};
+      var hasDied = false, flapPending = false;
+      var animFrameId = null, lastFrameTime = 0;
+      var pipeGapsCache = null;
+
+      // ── Canvas sizing ────────────────────────────────
+
+      function resizeCanvas() {
+        var w = gameRoot.clientWidth;
+        var h = gameRoot.clientHeight;
+        if (w <= 0 || h <= 0) return;
+        var ratio = CANVAS_W / CANVAS_H;
+        var cw, ch;
+        if (w / h > ratio) { ch = h; cw = ch * ratio; }
+        else { cw = w; ch = cw / ratio; }
+        canvas.style.width = Math.floor(cw) + 'px';
+        canvas.style.height = Math.floor(ch) + 'px';
+      }
+
+      // ── PRNG ─────────────────────────────────────────
+
+      function mulberry32(a) {
+        return function () {
+          a |= 0; a = a + 0x6D2B79F5 | 0;
+          var t = Math.imul(a ^ a >>> 15, 1 | a);
+          t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+          return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+      }
+      function getPipeGap(index, seedVal) {
+        var s = seedVal || seed;
+        if (!pipeGapsCache || pipeGapsCache._seed !== s) pipeGapsCache = { _seed: s };
+        if (pipeGapsCache[index] !== undefined) return pipeGapsCache[index];
+        var rng = mulberry32((s + index * 1697) | 0);
+        pipeGapsCache[index] = 70 + rng() * (CANVAS_H - GROUND_H - PIPE_GAP - 120);
+        return pipeGapsCache[index];
+      }
+
+      // ── Drawing primitives ───────────────────────────
+
+      function drawSky() {
+        var grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H - GROUND_H);
+        grad.addColorStop(0, '#4ecdc4'); grad.addColorStop(0.5, '#6cd9d1'); grad.addColorStop(1, '#a8e6cf');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      }
+
+      function drawGround(offset) {
+        var gy = CANVAS_H - GROUND_H;
+        ctx.fillStyle = '#d4a853'; ctx.fillRect(0, gy, CANVAS_W, 8);
+        ctx.fillStyle = '#8B6914'; ctx.fillRect(0, gy + 8, CANVAS_W, 4);
+        ctx.fillStyle = '#654321'; ctx.fillRect(0, gy + 12, CANVAS_W, GROUND_H - 12);
+        ctx.fillStyle = '#7a5c30';
+        var po = offset % 40;
+        for (var x = -po; x < CANVAS_W + 40; x += 40) {
+          ctx.fillRect(x, gy + 12, 20, 3); ctx.fillRect(x + 10, gy + 18, 15, 3);
+        }
+        ctx.fillStyle = '#3d2b0f'; ctx.fillRect(0, gy + 4, CANVAS_W, 4);
+      }
+
+      function drawPipe(px, gapY) {
+        var headH = 25, headW = PIPE_W + 8;
+
+        ctx.fillStyle = '#2d8a4e';
+        ctx.fillRect(px, 0, PIPE_W, gapY - headH);
+        ctx.fillStyle = '#35a05c';
+        ctx.fillRect(px - 4, gapY - headH, headW, headH);
+        ctx.fillStyle = '#1f6b37';
+        ctx.fillRect(px - 4, gapY - 4, headW, 6);
+        ctx.fillRect(px, 0, 4, gapY - headH + 6);
+
+        var topH = CANVAS_H - GROUND_H - gapY - PIPE_GAP;
+        ctx.fillStyle = '#35a05c';
+        ctx.fillRect(px - 4, gapY + PIPE_GAP, headW, headH);
+        ctx.fillStyle = '#1f6b37';
+        ctx.fillRect(px - 4, gapY + PIPE_GAP, headW, 6);
+        ctx.fillStyle = '#2d8a4e';
+        ctx.fillRect(px, gapY + PIPE_GAP + headH, PIPE_W, topH - headH);
+        ctx.fillStyle = '#1f6b37';
+        ctx.fillRect(px, gapY + PIPE_GAP + headH, 4, topH - headH);
+      }
+
+      function drawPipes(elapsed) {
+        var so = elapsed * PIPE_SPEED;
+        var first = Math.floor(so / PIPE_SPACING) - 1;
+        for (var i = first; i < first + 6; i++) {
+          if (i < 0) continue;
+          var px = CANVAS_W + i * PIPE_SPACING - so;
+          if (px > CANVAS_W + PIPE_W + 8 || px < -PIPE_W - 8) continue;
+          drawPipe(px, getPipeGap(i, seed));
+        }
+      }
+
+      function drawBird(x, y, vy, color, isSelf, name, alive, ts) {
+        if (!alive) return;
+        ctx.save(); ctx.translate(x, y);
+        var rot = Math.min(Math.max(vy * 0.08, -0.5), 0.5);
+        ctx.rotate(rot);
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.ellipse(0, 0, BIRD_R, BIRD_R * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(5, -BIRD_R * 0.25, BIRD_R * 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(6, -BIRD_R * 0.28, BIRD_R * 0.15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f90';
+        ctx.beginPath();
+        ctx.moveTo(BIRD_R * 0.7, -BIRD_R * 0.1); ctx.lineTo(BIRD_R * 1.3, BIRD_R * 0.1); ctx.lineTo(BIRD_R * 0.7, BIRD_R * 0.25);
+        ctx.closePath(); ctx.fill();
+        if (!isSelf && name) {
+          ctx.rotate(-rot);
+          ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = 'bold 9px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(name, 0, -BIRD_R - 10);
+        }
+        ctx.restore();
+      }
+
+      function drawScoreboard(state) {
+        var players = state.players || {};
+        var order = state.playerOrder || [];
+        var colors = state.playerColors || {};
+        if (!order.length) return;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, 0, CANVAS_W, 34);
+
+        var available = CANVAS_W - 16;
+        var cardW = Math.min(90, available / Math.max(order.length, 1));
+        var totalW = cardW * order.length;
+        var startX = (CANVAS_W - totalW) / 2;
+
+        for (var i = 0; i < order.length; i++) {
+          var pid = order[i], p = players[pid];
+          if (!p) continue;
+          var c = colors[pid] || {};
+          var cx = startX + i * cardW;
+          var isDead = !p.alive;
+
+          ctx.globalAlpha = isDead ? 0.4 : 1;
+          ctx.fillStyle = c.color || '#888';
+          ctx.beginPath(); ctx.arc(cx + 8, 17, 5, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = '#ddd';
+          ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left';
+          var nameText = (p.name || '...').slice(0, 4);
+          ctx.fillText(nameText, cx + 17, 22);
+
+          ctx.fillStyle = '#ffd700';
+          ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'right';
+          ctx.fillText(String(p.score || 0), cx + cardW - 6, 22);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      function drawCenterOverlay(title, sub) {
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        if (title) {
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 36px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(title, CANVAS_W / 2, CANVAS_H / 2 - 8);
+        }
+        if (sub) {
+          ctx.fillStyle = '#ccc'; ctx.font = '14px system-ui, sans-serif';
+          ctx.fillText(sub, CANVAS_W / 2, CANVAS_H / 2 + 26);
+        }
+      }
+
+      // ── Collision detection ──────────────────────────
+
+      function checkCollision(birdY, elapsed) {
+        var top = birdY - BIRD_R + 2, bot = birdY + BIRD_R - 2;
+        if (top <= 0 || bot >= CANVAS_H - GROUND_H) return true;
+        var so = elapsed * PIPE_SPEED;
+        var first = Math.floor(so / PIPE_SPACING) - 1;
+        for (var i = first; i < first + 6; i++) {
+          if (i < 0) continue;
+          var px = CANVAS_W + i * PIPE_SPACING - so;
+          var gapY = getPipeGap(i, seed);
+          if (px + PIPE_W + 4 < BIRD_X - BIRD_R || px - 4 > BIRD_X + BIRD_R) continue;
+          if (top < gapY || bot > gapY + PIPE_GAP) return true;
+        }
+        return false;
+      }
+
+      function getPassedPipeCount(elapsed) {
+        var so = elapsed * PIPE_SPEED, birdLeft = BIRD_X - BIRD_R, count = 0;
+        for (var i = 0; i < 100; i++) {
+          if (CANVAS_W + i * PIPE_SPACING - so + PIPE_W + 4 < birdLeft) count++; else break;
+        }
+        return count;
+      }
+
+      // ── Main render ──────────────────────────────────
+
+      function renderFrame(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        drawSky();
+
+        var state = parti.getState();
+
+        // ── COUNTDOWN ──────────────────────────────────
+        if (phase === 'countdown') {
+          drawGround(0);
+          for (var jc = 0; jc < 3; jc++) { drawPipe(CANVAS_W + jc * PIPE_SPACING, 180); }
+          if (state) drawScoreboard(state);
+          ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 34, CANVAS_W, CANVAS_H - 34);
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 80px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(String(countdown), CANVAS_W / 2, CANVAS_H / 2 + 4);
+          ctx.font = '15px system-ui, sans-serif';
+          ctx.fillStyle = '#ccc';
+          ctx.fillText('已准备 · 即将开始...', CANVAS_W / 2, CANVAS_H / 2 + 42);
+          return;
+        }
+
+        // ── PLAYING ────────────────────────────────────
+        if (phase === 'playing' && gameStartTime > 0) {
+          var elapsedFrames = (timestamp - gameStartTime) / 16.667;
+          drawPipes(elapsedFrames);
+          drawGround(elapsedFrames * PIPE_SPEED);
+
+          if (myBird.alive) {
+            myBird.vy += GRAVITY;
+            if (myBird.vy > MAX_FALL) myBird.vy = MAX_FALL;
+            if (flapPending) { myBird.vy = FLAP_VEL; flapPending = false; }
+            myBird.y += myBird.vy;
+            if (checkCollision(myBird.y, elapsedFrames)) {
+              myBird.alive = false; myBird.score = getPassedPipeCount(elapsedFrames);
+              hasDied = true;
+              parti.action('die', { score: myBird.score });
+            } else {
+              myBird.score = getPassedPipeCount(elapsedFrames);
+            }
+          }
+
+          var players = state ? state.players : {};
+          var pColors = state ? state.playerColors : {};
+          var order = state ? state.playerOrder : [];
+
+          for (var oi = 0; oi < order.length; oi++) {
+            var pid = order[oi], p = players[pid];
+            if (!p) continue;
+            if (pid === myId) {
+              if (!myBird.alive) continue;
+              drawBird(BIRD_X, myBird.y, myBird.vy, (pColors[pid] && pColors[pid].color) || '#fff', true, '', true, timestamp);
+            } else {
+              if (!p.alive) continue;
+              if (!remoteBirds[pid]) remoteBirds[pid] = { y: 280, vy: 0, alive: true, score: 0 };
+              var rb = remoteBirds[pid];
+              rb.vy += GRAVITY; if (rb.vy > MAX_FALL) rb.vy = MAX_FALL; rb.y += rb.vy;
+              ctx.globalAlpha = 0.5;
+              drawBird(BIRD_X, rb.y, rb.vy, (pColors[pid] && pColors[pid].color) || '#888', false, p.name || '', true, timestamp);
+              ctx.globalAlpha = 1;
+            }
+          }
+
+          if (state) drawScoreboard(state);
+
+          if (myBird.alive) {
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 36px system-ui, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(String(myBird.score), CANVAS_W / 2, 68);
+          } else {
+            var hasSurvivors = false;
+            for (var si = 0; si < order.length; si++) {
+              if (state && state.players[order[si]] && state.players[order[si]].alive && order[si] !== myId) { hasSurvivors = true; break; }
+            }
+            if (hasSurvivors) {
+              drawCenterOverlay('观战中...', '得分: ' + myBird.score);
+            }
+          }
+          return;
+        }
+
+        // ── FINISHED ───────────────────────────────────
+        if (phase === 'finished') {
+          drawGround(0);
+          for (var jf = 0; jf < 3; jf++) { drawPipe(CANVAS_W + jf * PIPE_SPACING, 180); }
+          if (state) drawScoreboard(state);
+
+          var bestPid = '', bestScore = -1;
+          var fPlayers = state ? state.players : {};
+          var fOrder = state ? state.playerOrder : [];
+          for (var fi = 0; fi < fOrder.length; fi++) {
+            var fpid = fOrder[fi], sc = fPlayers[fpid] ? fPlayers[fpid].score || 0 : 0;
+            if (sc > bestScore) { bestScore = sc; bestPid = fpid; }
+          }
+          if (bestPid && bestPid === myId) {
+            drawCenterOverlay('恭喜！你赢了！', '最高分: ' + bestScore);
+          } else if (bestPid && fPlayers[bestPid]) {
+            drawCenterOverlay(fPlayers[bestPid].name + ' 获胜！', '最高分: ' + bestScore);
+          } else {
+            drawCenterOverlay('游戏结束', '');
+          }
+          return;
+        }
+
+        // ── WAITING ────────────────────────────────────
+        drawGround(0);
+        for (var jw = 0; jw < 3; jw++) { drawPipe(CANVAS_W + jw * PIPE_SPACING, 180); }
+        if (state) drawScoreboard(state);
+
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 28px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Flappy Bird', CANVAS_W / 2, CANVAS_H / 2 - 30);
+        ctx.font = 'bold 15px system-ui, sans-serif';
+        ctx.fillStyle = '#ccc';
+        ctx.fillText('联机版', CANVAS_W / 2, CANVAS_H / 2 + 6);
+
+        if (myReady) {
+          ctx.font = '14px system-ui, sans-serif';
+          ctx.fillStyle = '#4ECDC4';
+          ctx.fillText('已准备，等待其他玩家...', CANVAS_W / 2, CANVAS_H / 2 + 40);
+        } else if (myId) {
+          ctx.font = '14px system-ui, sans-serif';
+          ctx.fillStyle = '#aaa';
+          ctx.fillText('点击下方按钮准备开始', CANVAS_W / 2, CANVAS_H / 2 + 40);
+        }
+      }
+
+      // ── Game loop ────────────────────────────────────
+
+      function gameLoop(timestamp) {
+        renderFrame(timestamp);
+        lastFrameTime = timestamp;
+        animFrameId = requestAnimationFrame(gameLoop);
+      }
+      function startGameLoop() {
+        if (animFrameId) return;
+        animFrameId = requestAnimationFrame(gameLoop);
+      }
+
+      // ── State handler ────────────────────────────────
+
+      function handleState(state) {
+        if (!state) return;
+        if (state.seed !== undefined) seed = state.seed;
+
+        if (state.phase === 'countdown' && phase !== 'countdown') {
+          countdown = state.countdown || 3;
+          readyBtn.classList.add('dim');
+          readyBtn.textContent = '已准备 ✓';
+          readyBtn.disabled = true;
+          readyBtn.style.display = '';
+          restartBtn.style.display = 'none';
+        }
+        if (state.phase === 'playing' && phase !== 'playing') {
+          myBird = { y: 280, vy: 0, alive: true, score: 0 };
+          remoteBirds = {}; hasDied = false; flapPending = false;
+          readyBtn.style.display = 'none';
+          restartBtn.style.display = 'none';
+        }
+        if (state.phase === 'finished' && phase !== 'finished') {
+          var st = parti.getState();
+          var mp = (st && st.players && st.players[myId]) ? st.players[myId] : null;
+          if (mp) myBird.score = mp.score || 0;
+          remoteBirds = {};
+          readyBtn.style.display = 'none';
+          restartBtn.style.display = '';
+          restartBtn.disabled = false;
+        }
+        if (state.phase === 'waiting') {
+          gameStartTime = 0; countdown = 0; hasDied = false;
+        }
+
+        phase = state.phase;
+        pipeGapsCache = null;
+
+        if (state.phase === 'waiting' && myId && state.players && state.players[myId]) {
+          myReady = !!state.players[myId].ready;
+          if (myReady) {
+            readyBtn.textContent = '已准备 ✓'; readyBtn.disabled = true; readyBtn.classList.add('dim');
+          } else {
+            readyBtn.textContent = '准备'; readyBtn.disabled = false; readyBtn.classList.remove('dim');
+          }
+          readyBtn.style.display = '';
+          restartBtn.style.display = 'none';
+        }
+      }
+
+      // ── Events ───────────────────────────────────────
+
+      function handleRemoteFlap(pid) {
+        if (pid === myId) return;
+        if (remoteBirds[pid]) remoteBirds[pid].vy = FLAP_VEL;
+      }
+
+      function onInput(e) {
+        if (phase === 'playing' && myBird.alive && !hasDied) {
+          parti.action('flap', {});
+          flapPending = true;
+          e.preventDefault();
+        }
+      }
+
+      readyBtn.addEventListener('click', function () {
+        if (phase === 'waiting' && !myReady) {
+          parti.action('ready', {});
+          myReady = true;
+          readyBtn.textContent = '已准备 ✓';
+          readyBtn.disabled = true;
+          readyBtn.classList.add('dim');
+        }
+      });
+
+      restartBtn.addEventListener('click', function () {
+        parti.action('restart', {});
+        myBird = { y: 280, vy: 0, alive: true, score: 0 };
+        hasDied = false; remoteBirds = {};
+        restartBtn.style.display = 'none';
+      });
+
+      gameRoot.addEventListener('click', onInput);
+      gameRoot.addEventListener('touchstart', function (e) { onInput(e); }, { passive: false });
+      document.addEventListener('keydown', function (e) {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') onInput(e);
+      });
+
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('orientationchange', function () { setTimeout(resizeCanvas, 200); });
+
+      parti.onState(function (state) { handleState(state); });
+      parti.onEvent('player:flap', function (p) { if (p && p.playerId) handleRemoteFlap(p.playerId); });
+      parti.onEvent('player:died', function (p) {
+        if (p && p.playerId && remoteBirds[p.playerId]) remoteBirds[p.playerId].alive = false;
+      });
+      parti.onEvent('game:countdown', function (p) {
+        if (p && typeof p.count === 'number') countdown = p.count;
+      });
+      parti.onEvent('game:start', function () {
+        gameStartTime = performance.now(); pipeGapsCache = null;
+      });
+      parti.onEvent('game:over', function () {
+        var st = parti.getState();
+        if (st) {
+          phase = st.phase;
+          if (st.players && st.players[myId]) myBird.score = st.players[myId].score || 0;
+          handleState(st);
+        }
+      });
+      parti.onEvent('game:reset', function () {
+        myBird = { y: 280, vy: 0, alive: true, score: 0 };
+        hasDied = false; remoteBirds = {}; pipeGapsCache = null;
+        gameStartTime = 0; countdown = 0; myReady = false; phase = 'waiting';
+        restartBtn.style.display = 'none';
+        readyBtn.style.display = '';
+        readyBtn.textContent = '准备';
+        readyBtn.disabled = false;
+        readyBtn.classList.remove('dim');
+      });
+
+      // ── Init ─────────────────────────────────────────
+
+      startGameLoop();
+      myId = parti.playerId;
+      parti.ready();
+      resizeCanvas();
+
+      var initial = parti.getState();
+      if (initial) handleState(initial);
+
+      setTimeout(function () {
+        var s = parti.getState();
+        if (s) handleState(s);
+        resizeCanvas();
+      }, 200);
+    })();
+  </script>
+</body>
+</html>
